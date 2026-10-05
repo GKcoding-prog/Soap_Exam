@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="http://soap.hotel.com/payment">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <pay:processPaymentAndGenerateReceiptRequest>
+         <pay:reservationId>RES-1001</pay:reservationId>
+ 	    <pay:amount>125.50</pay:amount>
+	    <pay:currency>USD</pay:currency>
+         <pay:cardToken>TEST-CARD-OK</pay:cardToken>
+      </pay:processPaymentAndGenerateReceiptRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
