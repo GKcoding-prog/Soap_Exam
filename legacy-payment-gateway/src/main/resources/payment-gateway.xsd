@@ -1,16 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SOAP contract of the legacy payment gateway (Project F - Gestion hôtelière).
+
+    The WSDL is generated from this schema by DefaultWsdl11Definition:
+      - elements ending in "Request"  become input messages,
+      - elements ending in "Response" become output messages,
+      - elements ending in "Fault"    become wsdl:fault messages,
+    all grouped under the operation "processPaymentAndGenerateReceipt".
+
+    Types mirror the SQL tables:
+      payment_transaction.transaction_ref  VARCHAR UNIQUE -> TransactionRef
+      payment_transaction.amount           DECIMAL(19,2)  -> Amount (xs:decimal)
+      payment_transaction.currency         VARCHAR(3)     -> CurrencyCode
+      payment_transaction.status           VARCHAR        -> PaymentStatus (enum)
+      payment_transaction.auth_code        VARCHAR        -> AuthorizationCode
+      transaction_receipt.receipt_xml_data CLOB           -> xs:string
+      transaction_receipt.issue_date       TIMESTAMP      -> xs:dateTime
+-->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            targetNamespace="http://soap.hotel.com/payment"
            xmlns:tns="http://soap.hotel.com/payment"
            elementFormDefault="qualified">
 
+    <!-- ===================== Simple types ===================== -->
+
+    <xs:simpleType name="ReservationId">
+        <xs:annotation><xs:documentation>Reservation identifier sent by the hotel application.</xs:documentation></xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="64"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Amount">
+        <xs:annotation><xs:documentation>Strictly positive amount with at most 2 decimals, matching DECIMAL(19,2).</xs:documentation></xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minExclusive value="0"/>
+            <xs:totalDigits value="19"/>
+            <xs:fractionDigits value="2"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CurrencyCode">
+        <xs:annotation><xs:documentation>ISO 4217 currency code, e.g. USD, EUR, BIF (VARCHAR(3)).</xs:documentation></xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z]{3}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CardToken">
+        <xs:annotation><xs:documentation>Simulated card token. The value DECLINED forces a declined payment.</xs:documentation></xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="128"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TransactionRef">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="TXN-[A-Z0-9]{8}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AuthorizationCode">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="AUTH-[A-Z0-9]{8}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PaymentStatus">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SUCCESS"/>
+            <xs:enumeration value="DECLINED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PaymentErrorCode">
+        <xs:annotation><xs:documentation>Business error codes returned inside the SOAP fault detail.</xs:documentation></xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="UNSUPPORTED_CURRENCY"/>
+            <xs:enumeration value="AMOUNT_LIMIT_EXCEEDED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===================== Operation messages ===================== -->
+
     <xs:element name="processPaymentAndGenerateReceiptRequest">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="reservationId" type="xs:string"/>
-                <xs:element name="amount" type="xs:decimal"/>
-                <xs:element name="currency" type="xs:string"/>
-                <xs:element name="cardToken" type="xs:string"/>
+                <xs:element name="reservationId" type="tns:ReservationId"/>
+                <xs:element name="amount" type="tns:Amount"/>
+                <xs:element name="currency" type="tns:CurrencyCode"/>
+                <xs:element name="cardToken" type="tns:CardToken"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
@@ -18,10 +99,24 @@
     <xs:element name="processPaymentAndGenerateReceiptResponse">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="transactionId" type="xs:string"/>
-                <xs:element name="status" type="xs:string"/>
-                <xs:element name="authorizationCode" type="xs:string" minOccurs="0"/>
+                <xs:element name="transactionId" type="tns:TransactionRef"/>
+                <xs:element name="status" type="tns:PaymentStatus"/>
+                <!-- Only present when status = SUCCESS (auth_code is NULL otherwise). -->
+                <xs:element name="authorizationCode" type="tns:AuthorizationCode" minOccurs="0"/>
+                <xs:element name="amount" type="tns:Amount"/>
+                <xs:element name="currency" type="tns:CurrencyCode"/>
+                <xs:element name="issueDate" type="xs:dateTime"/>
                 <xs:element name="receiptXmlData" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Placed in <detail> of the <soap:Fault> when a business rule rejects the payment. -->
+    <xs:element name="processPaymentAndGenerateReceiptFault">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="code" type="tns:PaymentErrorCode"/>
+                <xs:element name="message" type="xs:string"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
