@@ -1,28 +1,29 @@
 const express = require('express');
-const { completeReservationPayment, ValidationError } = require('./services/paymentIntegrationService');
+const { connectDatabase } = require('./config/db');
+const { AppError } = require('./errors');
 const { PaymentGatewayError } = require('./services/paymentSoapClient');
+const reservationRoutes = require('./routes/reservations');
+const invoiceRoutes = require('./routes/invoices');
 
 const app = express();
 app.use(express.json());
 
-app.post('/api/payments', async (req, res) => {
-  try {
-    const payment = await completeReservationPayment(req.body);
-    // 402 Payment Required: the bank declined the card.
-    res.status(payment.status === 'SUCCESS' ? 200 : 402).json(payment);
-  } catch (error) {
-    const { status, body } = toHttpError(error);
-    if (status >= 500) {
-      console.error('[payments]', error.message);
-    }
-    res.status(status).json(body);
+app.use('/api/reservations', reservationRoutes);
+app.use('/api/invoices', invoiceRoutes);
+
+// Express 5 forwards errors thrown in async handlers to this middleware.
+app.use((error, req, res, next) => {
+  const { status, body } = toHttpError(error);
+  if (status >= 500) {
+    console.error(`[${req.method} ${req.originalUrl}]`, error.message);
   }
+  res.status(status).json(body);
 });
 
 /** Maps application and gateway errors to HTTP responses. */
 function toHttpError(error) {
-  if (error instanceof ValidationError) {
-    return { status: 400, body: { type: 'VALIDATION_ERROR', message: error.message } };
+  if (error instanceof AppError) {
+    return { status: error.statusCode, body: { type: error.type, message: error.message } };
   }
   if (error instanceof PaymentGatewayError) {
     switch (error.kind) {
@@ -38,10 +39,19 @@ function toHttpError(error) {
         return { status: 503, body: { type: 'PAYMENT_GATEWAY_UNAVAILABLE', message: error.message } };
     }
   }
+  if (error.type === 'entity.parse.failed') {
+    return { status: 400, body: { type: 'VALIDATION_ERROR', message: 'Malformed JSON body' } };
+  }
   return { status: 500, body: { type: 'INTERNAL_ERROR', message: 'Unexpected error' } };
 }
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => {
-  console.log(`Hotel API listening on http://localhost:${port}`);
-});
+
+connectDatabase()
+  .then(() => {
+    app.listen(port, () => console.log(`Hotel API listening on http://localhost:${port}`));
+  })
+  .catch((error) => {
+    console.error('Cannot connect to MongoDB:', error.message);
+    process.exit(1);
+  });

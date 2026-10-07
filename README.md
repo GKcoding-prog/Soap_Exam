@@ -56,7 +56,7 @@ Defined in `legacy-payment-gateway/src/main/resources/payment-gateway.xsd`
 
 ## Start the Node.js API
 
-Requires Node.js 22.9+.
+Requires Node.js 22.9+ and MongoDB running on `mongodb://127.0.0.1:27017`.
 
 ```bash
 cd hotel-api
@@ -65,17 +65,43 @@ cp .env.example .env
 npm start
 ```
 
-`POST http://localhost:3000/api/payments`
+### Structure
 
-```json
-{ "reservationId": "RES-1001", "amount": 125.5, "currency": "USD", "cardToken": "TEST-CARD-OK" }
 ```
+src/
+  app.js                         routes + error middleware (HTTP mapping)
+  config/db.js                   Mongoose connection
+  models/Reservation.js          Mongoose model
+  models/Invoice.js              Mongoose model (transactionId, receipt, payment attempts)
+  services/reservationService.js reservation business rules (total, check-out)
+  services/invoiceService.js     invoice business rules (one per reservation, payable, record payment)
+  services/paymentSoapClient.js  SOAP client: createClientAsync, XML -> JSON mapping, fault parsing
+  services/paymentIntegrationService.js  adapter: invoiceService -> SOAP -> invoiceService/reservationService
+```
+
+The SOAP layer holds no business rules: it only calls the existing services.
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/api/reservations` | Create a reservation (`guestName`, `roomNumber`, `checkInDate`, `checkOutDate`, `nightlyRate`, `currency`) |
+| GET | `/api/reservations` / `/api/reservations/:id` | List / read reservations |
+| POST | `/api/reservations/:id/invoice` | Issue the invoice (amount = nights x nightly rate) |
+| GET | `/api/invoices/:id` | Read an invoice |
+| POST | `/api/invoices/:id/pay` | Validate the invoice through the SOAP gateway, body `{ "cardToken": "TEST-CARD-OK" }` |
+
+On `SUCCESS` the invoice becomes `PAID` and stores `transactionId`, `authorizationCode`,
+`paidAt` and the receipt; the reservation becomes `CHECKED_OUT`. A `DECLINED` attempt is
+only logged in `invoice.paymentAttempts`. Gateway errors leave MongoDB unchanged.
 
 | Result | HTTP |
 |---|---|
 | Payment SUCCESS | 200 |
 | Payment DECLINED | 402 |
 | Invalid input (checked in Node) | 400 |
+| Reservation / invoice not found | 404 |
+| Invoice already paid, duplicate invoice | 409 |
 | `soap:Client` fault (rejected by the gateway) | 422 |
 | `soap:Server` fault | 502 |
 | Spring Boot stopped / unreachable | 503 |
