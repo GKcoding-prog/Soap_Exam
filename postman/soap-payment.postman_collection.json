@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Hotel Management - SOAP Payment Gateway (Project F)",
-    "description": "Folder 1: SOAP calls to the Spring Boot legacy-payment-gateway (each with the full XML response saved as an example).\nFolder 2: REST calls to the Node.js hotel-api, which consumes the SOAP service and updates MongoDB. Run it with the Collection Runner.\nFolder 3: run after stopping Spring Boot to check the outage handling.",
+    "description": "Folder 1: SOAP calls to the Spring Boot legacy-payment-gateway (each with the full XML response saved as an example).\nFolder 2: REST calls to the Hotel_JS_NoSQL API (port 5000), which consumes the SOAP service on invoice payment and updates MongoDB (Facture + Reservation). Run `npm run seed` first, then run the folder with the Collection Runner.\nFolder 3: run after stopping Spring Boot to check the outage handling.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,22 +11,62 @@
     },
     {
       "key": "apiUrl",
-      "value": "http://localhost:3000/api"
+      "value": "http://localhost:5000/api"
     },
     {
-      "key": "reservationId",
+      "key": "adminToken",
       "value": ""
     },
     {
-      "key": "invoiceId",
+      "key": "clientToken",
       "value": ""
     },
     {
-      "key": "gbpReservationId",
+      "key": "chambre201Id",
       "value": ""
     },
     {
-      "key": "gbpInvoiceId",
+      "key": "chambre301Id",
+      "value": ""
+    },
+    {
+      "key": "mainArrivee",
+      "value": ""
+    },
+    {
+      "key": "mainDepart",
+      "value": ""
+    },
+    {
+      "key": "mainReservationId",
+      "value": ""
+    },
+    {
+      "key": "mainFactureId",
+      "value": ""
+    },
+    {
+      "key": "bigArrivee",
+      "value": ""
+    },
+    {
+      "key": "bigDepart",
+      "value": ""
+    },
+    {
+      "key": "bigReservationId",
+      "value": ""
+    },
+    {
+      "key": "bigFactureId",
+      "value": ""
+    },
+    {
+      "key": "outageArrivee",
+      "value": ""
+    },
+    {
+      "key": "outageDepart",
       "value": ""
     },
     {
@@ -34,7 +74,7 @@
       "value": ""
     },
     {
-      "key": "outageInvoiceId",
+      "key": "outageFactureId",
       "value": ""
     }
   ],
@@ -488,18 +528,18 @@
       ]
     },
     {
-      "name": "2. REST - Hotel API (Node.js + MongoDB)",
+      "name": "2. REST - Hotel API (Hotel_JS_NoSQL, Node.js + MongoDB)",
       "item": [
         {
-          "name": "1. Create reservation",
+          "name": "Login admin",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('reservationId', pm.response.json()._id);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
                 ]
               }
             }
@@ -512,15 +552,268 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/auth/connexion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "auth",
+                "connexion"
+              ]
+            },
+            "description": "Seeded admin (npm run seed). Saves {{adminToken}}.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"guestName\": \"Alice Ndayishimiye\",\n  \"guestEmail\": \"alice@example.com\",\n  \"roomNumber\": \"204\",\n  \"checkInDate\": \"2026-10-01\",\n  \"checkOutDate\": \"2026-10-04\",\n  \"nightlyRate\": 85.5,\n  \"currency\": \"USD\"\n}",
+              "raw": "{\n  \"email\": \"admin@hotel.com\",\n  \"motDePasse\": \"admin123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          },
+          "response": [
+            {
+              "name": "Login admin - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/auth/connexion",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "connexion"
+                  ]
+                },
+                "description": "Seeded admin (npm run seed). Saves {{adminToken}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@hotel.com\",\n  \"motDePasse\": \"admin123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"token\": \"<jwt-token>\",\n  \"data\": {\n    \"_id\": \"6ac6887769b9c32a72e567a5\",\n    \"nom\": \"Admin\",\n    \"prenom\": \"Hotel\",\n    \"email\": \"admin@hotel.com\",\n    \"role\": \"admin\",\n    \"actif\": true,\n    \"createdAt\": \"2026-10-07T17:59:19.264Z\",\n    \"updatedAt\": \"2026-10-07T17:59:19.264Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('clientToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/auth/connexion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "auth",
+                "connexion"
+              ]
             },
+            "description": "Seeded client. Saves {{clientToken}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jean@example.com\",\n  \"motDePasse\": \"client123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Login client - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/auth/connexion",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "connexion"
+                  ]
+                },
+                "description": "Seeded client. Saves {{clientToken}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"jean@example.com\",\n  \"motDePasse\": \"client123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"token\": \"<jwt-token>\",\n  \"data\": {\n    \"_id\": \"6ac6887769b9c32a72e567a7\",\n    \"nom\": \"Dupont\",\n    \"prenom\": \"Jean\",\n    \"email\": \"jean@example.com\",\n    \"telephone\": \"+257 79 000 001\",\n    \"adresse\": \"Bujumbura, Burundi\",\n    \"role\": \"client\",\n    \"actif\": true,\n    \"createdAt\": \"2026-10-07T17:59:19.656Z\",\n    \"updatedAt\": \"2026-10-07T17:59:19.656Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List rooms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const rooms = pm.response.json().data;",
+                  "pm.collectionVariables.set('chambre201Id', rooms.find(c => c.numero === '201')._id);",
+                  "pm.collectionVariables.set('chambre301Id', rooms.find(c => c.numero === '301')._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/chambres",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "chambres"
+              ]
+            },
+            "description": "Saves {{chambre201Id}} (double) and {{chambre301Id}} (suite)."
+          },
+          "response": [
+            {
+              "name": "List rooms - response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/chambres",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "chambres"
+                  ]
+                },
+                "description": "Saves {{chambre201Id}} (double) and {{chambre301Id}} (suite)."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"total\": 6,\n  \"data\": [\n    {\n      \"_id\": \"6ac6887869b9c32a72e567a9\",\n      \"numero\": \"101\",\n      \"type\": \"simple\",\n      \"prixParNuit\": 50000,\n      \"capacite\": 1,\n      \"description\": \"Chambre simple confortable\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\"\n      ],\n      \"etage\": 1,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567aa\",\n      \"numero\": \"102\",\n      \"type\": \"simple\",\n      \"prixParNuit\": 50000,\n      \"capacite\": 1,\n      \"description\": \"Chambre simple vue jardin\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\"\n      ],\n      \"etage\": 1,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ab\",\n      \"numero\": \"201\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double vue piscine\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"minibar\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ac\",\n      \"numero\": \"202\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double standard\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ae\",\n      \"numero\": \"401\",\n      \"type\": \"familiale\",\n      \"prixParNuit\": 130000,\n      \"capacite\": 4,\n      \"description\": \"Suite familiale 2 chambres\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"cuisine\"\n      ],\n      \"etage\": 4,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ad\",\n      \"numero\": \"301\",\n      \"type\": \"suite\",\n      \"prixParNuit\": 180000,\n      \"capacite\": 2,\n      \"description\": \"Suite luxueuse avec terrasse\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"jacuzzi\",\n        \"minibar\",\n        \"salon\"\n      ],\n      \"etage\": 3,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Stay - Create reservation (client)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const start = new Date(Date.now() + (400 + Math.floor(Math.random() * 3000)) * 86400000);",
+                  "const end = new Date(start.getTime() + 3 * 86400000);",
+                  "pm.collectionVariables.set('mainArrivee', start.toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set('mainDepart', end.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('mainReservationId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
             "url": {
               "raw": "{{apiUrl}}/reservations",
               "host": [
@@ -530,49 +823,234 @@
                 "reservations"
               ]
             },
-            "description": "3 nights x 85.50 = 256.50 USD. Saves {{reservationId}}."
-          }
+            "description": "Room 201, 3 night(s). Saves {{mainReservationId}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chambreId\": \"{{chambre201Id}}\",\n  \"dateArrivee\": \"{{mainArrivee}}\",\n  \"dateDepart\": \"{{mainDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Stay - Create reservation (client) - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{clientToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ]
+                },
+                "description": "Room 201, 3 night(s). Saves {{mainReservationId}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chambreId\": \"{{chambre201Id}}\",\n  \"dateArrivee\": \"{{mainArrivee}}\",\n  \"dateDepart\": \"{{mainDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"data\": {\n    \"client\": {\n      \"_id\": \"6ac6887769b9c32a72e567a7\",\n      \"nom\": \"Dupont\",\n      \"prenom\": \"Jean\",\n      \"email\": \"jean@example.com\",\n      \"telephone\": \"+257 79 000 001\",\n      \"adresse\": \"Bujumbura, Burundi\",\n      \"role\": \"client\",\n      \"actif\": true,\n      \"createdAt\": \"2026-10-07T17:59:19.656Z\",\n      \"updatedAt\": \"2026-10-07T17:59:19.656Z\",\n      \"__v\": 0\n    },\n    \"chambre\": {\n      \"_id\": \"6ac6887869b9c32a72e567ab\",\n      \"numero\": \"201\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double vue piscine\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"minibar\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n    \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"confirmee\",\n    \"prixChambre\": 85000,\n    \"prixServices\": 0,\n    \"prixTotal\": 255000,\n    \"_id\": \"6ac688e8efcd3022040344e6\",\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n    \"updatedAt\": \"2026-10-07T18:01:12.385Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "2. Create invoice",
+          "name": "Stay - Check-in (admin)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('invoiceId', pm.response.json()._id);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [],
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{apiUrl}}/reservations/{{reservationId}}/invoice",
+              "raw": "{{apiUrl}}/reservations/{{mainReservationId}}/checkin",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
                 "reservations",
-                "{{reservationId}}",
-                "invoice"
+                "{{mainReservationId}}",
+                "checkin"
               ]
             },
-            "description": "Invoice amount = reservation total. Saves {{invoiceId}}."
-          }
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "Stay - Check-in (admin) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{mainReservationId}}/checkin",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{mainReservationId}}",
+                    "checkin"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-in effectué.\",\n  \"data\": {\n    \"_id\": \"6ac688e8efcd3022040344e6\",\n    \"client\": \"6ac6887769b9c32a72e567a7\",\n    \"chambre\": \"6ac6887869b9c32a72e567ab\",\n    \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n    \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"en_cours\",\n    \"prixChambre\": 85000,\n    \"prixServices\": 0,\n    \"prixTotal\": 255000,\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n    \"updatedAt\": \"2026-10-07T18:01:12.411Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "3. Pay invoice - card DECLINED",
+          "name": "Stay - Check-out (admin, invoice generated)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 402', () => pm.response.to.have.status(402));"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('mainFactureId', pm.response.json().data.facture._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/reservations/{{mainReservationId}}/checkout",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{mainReservationId}}",
+                "checkout"
+              ]
+            },
+            "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{mainFactureId}}."
+          },
+          "response": [
+            {
+              "name": "Stay - Check-out (admin, invoice generated) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{mainReservationId}}/checkout",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{mainReservationId}}",
+                    "checkout"
+                  ]
+                },
+                "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{mainFactureId}}."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-out effectué. Facture générée.\",\n  \"data\": {\n    \"reservation\": {\n      \"_id\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"chambre\": {\n        \"_id\": \"6ac6887869b9c32a72e567ab\",\n        \"numero\": \"201\",\n        \"type\": \"double\",\n        \"prixParNuit\": 85000,\n        \"capacite\": 2,\n        \"description\": \"Chambre double vue piscine\",\n        \"equipements\": [\n          \"wifi\",\n          \"TV\",\n          \"climatisation\",\n          \"minibar\"\n        ],\n        \"etage\": 2,\n        \"disponible\": true,\n        \"images\": [],\n        \"__v\": 0,\n        \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n        \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n      },\n      \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n      \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n      \"nombrePersonnes\": 1,\n      \"statut\": \"terminee\",\n      \"prixChambre\": 85000,\n      \"prixServices\": 0,\n      \"prixTotal\": 255000,\n      \"servicesConsommes\": [],\n      \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n      \"updatedAt\": \"2026-10-07T18:01:12.428Z\",\n      \"__v\": 0\n    },\n    \"facture\": {\n      \"reservation\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"lignes\": [\n        {\n          \"description\": \"Chambre 201 (double) — 3 nuit(s)\",\n          \"quantite\": 3,\n          \"prixUnitaire\": 85000,\n          \"total\": 255000,\n          \"_id\": \"6ac688e8efcd3022040344f4\"\n        }\n      ],\n      \"sousTotal\": 255000,\n      \"tva\": 0.18,\n      \"statut\": \"en_attente\",\n      \"methodePaiement\": \"non_defini\",\n      \"_id\": \"6ac688e8efcd3022040344f3\",\n      \"devise\": \"BIF\",\n      \"tentativesPaiement\": [],\n      \"numero\": \"FACT-2026-0003\",\n      \"montantTVA\": 45900,\n      \"montantTotal\": 300900,\n      \"createdAt\": \"2026-10-07T18:01:12.437Z\",\n      \"updatedAt\": \"2026-10-07T18:01:12.437Z\",\n      \"__v\": 0\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pay by card - DECLINED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 402', () => pm.response.to.have.status(402));",
+                  "pm.test('Facture still en_attente', () => pm.expect(pm.response.json().data.facture.statut).to.eql('en_attente'));"
                 ]
               }
             }
@@ -583,8 +1061,24 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "factures",
+                "{{mainFactureId}}",
+                "payer-carte"
+              ]
+            },
+            "description": "SOAP status DECLINED: the invoice stays en_attente, the attempt is logged in tentativesPaiement.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cardToken\": \"DECLINED\"\n}",
@@ -593,30 +1087,70 @@
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{apiUrl}}/invoices/{{invoiceId}}/pay",
-              "host": [
-                "{{apiUrl}}"
+            }
+          },
+          "response": [
+            {
+              "name": "Pay by card - DECLINED - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{mainFactureId}}",
+                    "payer-carte"
+                  ]
+                },
+                "description": "SOAP status DECLINED: the invoice stays en_attente, the attempt is logged in tentativesPaiement.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cardToken\": \"DECLINED\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Payment Required",
+              "code": 402,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
               ],
-              "path": [
-                "invoices",
-                "{{invoiceId}}",
-                "pay"
-              ]
-            },
-            "description": "SOAP response status DECLINED: invoice stays UNPAID, attempt logged in paymentAttempts."
-          }
+              "body": "{\n  \"succes\": false,\n  \"message\": \"Carte refusée par la banque.\",\n  \"data\": {\n    \"paiement\": {\n      \"transactionId\": \"TXN-568E259C\",\n      \"status\": \"DECLINED\",\n      \"authorizationCode\": null,\n      \"amount\": 300900,\n      \"currency\": \"BIF\",\n      \"issueDate\": \"2026-10-07T18:01:12.000Z\",\n      \"receiptXmlData\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\r\\n<receipt>\\r\\n  <merchant>Hotel Management - Legacy Payment Gateway</merchant>\\r\\n  <reservationId>6ac688e8efcd3022040344e6</reservationId>\\r\\n  <transactionId>TXN-568E259C</transactionId>\\r\\n  <issueDate>2026-10-07T18:01:12Z</issueDate>\\r\\n  <amount currency=\\\"BIF\\\">300900.00</amount>\\r\\n  <status>DECLINED</status>\\r\\n</receipt>\"\n    },\n    \"facture\": {\n      \"_id\": \"6ac688e8efcd3022040344f3\",\n      \"reservation\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"lignes\": [\n        {\n          \"description\": \"Chambre 201 (double) — 3 nuit(s)\",\n          \"quantite\": 3,\n          \"prixUnitaire\": 85000,\n          \"total\": 255000,\n          \"_id\": \"6ac688e8efcd3022040344f4\"\n        }\n      ],\n      \"sousTotal\": 255000,\n      \"tva\": 0.18,\n      \"statut\": \"en_attente\",\n      \"methodePaiement\": \"non_defini\",\n      \"devise\": \"BIF\",\n      \"tentativesPaiement\": [\n        {\n          \"transactionId\": \"TXN-568E259C\",\n          \"statut\": \"DECLINED\",\n          \"codeAutorisation\": null,\n          \"date\": \"2026-10-07T18:01:12.000Z\"\n        }\n      ],\n      \"numero\": \"FACT-2026-0003\",\n      \"montantTVA\": 45900,\n      \"montantTotal\": 300900,\n      \"createdAt\": \"2026-10-07T18:01:12.437Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.102Z\",\n      \"__v\": 1\n    },\n    \"reservation\": null\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "4. Pay invoice - SUCCESS",
+          "name": "Pay by card - SUCCESS",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('Facture payee with transactionId', () => { pm.expect(d.facture.statut).to.eql('payee'); pm.expect(d.facture.transactionId).to.match(/^TXN-/); });",
+                  "pm.test('Reservation cloturee', () => pm.expect(d.reservation.statut).to.eql('cloturee'));"
                 ]
               }
             }
@@ -627,33 +1161,86 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "factures",
+                "{{mainFactureId}}",
+                "payer-carte"
+              ]
+            },
+            "description": "SOAP status SUCCESS: Facture payee (transactionId, codeAutorisation, recuXml saved), Reservation cloturee.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cardToken\": \"TEST-CARD-OK\"\n}",
+              "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{apiUrl}}/invoices/{{invoiceId}}/pay",
-              "host": [
-                "{{apiUrl}}"
+            }
+          },
+          "response": [
+            {
+              "name": "Pay by card - SUCCESS - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{mainFactureId}}",
+                    "payer-carte"
+                  ]
+                },
+                "description": "SOAP status SUCCESS: Facture payee (transactionId, codeAutorisation, recuXml saved), Reservation cloturee.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
               ],
-              "path": [
-                "invoices",
-                "{{invoiceId}}",
-                "pay"
-              ]
-            },
-            "description": "SOAP response status SUCCESS: invoice PAID with transactionId, reservation CHECKED_OUT."
-          }
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Paiement accepté par la passerelle.\",\n  \"data\": {\n    \"paiement\": {\n      \"transactionId\": \"TXN-E0EF2ADA\",\n      \"status\": \"SUCCESS\",\n      \"authorizationCode\": \"AUTH-E57F1377\",\n      \"amount\": 300900,\n      \"currency\": \"BIF\",\n      \"issueDate\": \"2026-10-07T18:01:13.000Z\",\n      \"receiptXmlData\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\r\\n<receipt>\\r\\n  <merchant>Hotel Management - Legacy Payment Gateway</merchant>\\r\\n  <reservationId>6ac688e8efcd3022040344e6</reservationId>\\r\\n  <transactionId>TXN-E0EF2ADA</transactionId>\\r\\n  <issueDate>2026-10-07T18:01:13Z</issueDate>\\r\\n  <amount currency=\\\"BIF\\\">300900.00</amount>\\r\\n  <status>SUCCESS</status>\\r\\n  <authorizationCode>AUTH-E57F1377</authorizationCode>\\r\\n</receipt>\"\n    },\n    \"facture\": {\n      \"_id\": \"6ac688e8efcd3022040344f3\",\n      \"reservation\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"lignes\": [\n        {\n          \"description\": \"Chambre 201 (double) — 3 nuit(s)\",\n          \"quantite\": 3,\n          \"prixUnitaire\": 85000,\n          \"total\": 255000,\n          \"_id\": \"6ac688e8efcd3022040344f4\"\n        }\n      ],\n      \"sousTotal\": 255000,\n      \"tva\": 0.18,\n      \"statut\": \"payee\",\n      \"methodePaiement\": \"carte\",\n      \"devise\": \"BIF\",\n      \"tentativesPaiement\": [\n        {\n          \"transactionId\": \"TXN-568E259C\",\n          \"statut\": \"DECLINED\",\n          \"codeAutorisation\": null,\n          \"date\": \"2026-10-07T18:01:12.000Z\"\n        },\n        {\n          \"transactionId\": \"TXN-E0EF2ADA\",\n          \"statut\": \"SUCCESS\",\n          \"codeAutorisation\": \"AUTH-E57F1377\",\n          \"date\": \"2026-10-07T18:01:13.000Z\"\n        }\n      ],\n      \"numero\": \"FACT-2026-0003\",\n      \"montantTVA\": 45900,\n      \"montantTotal\": 300900,\n      \"createdAt\": \"2026-10-07T18:01:12.437Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.153Z\",\n      \"__v\": 2,\n      \"datePaiement\": \"2026-10-07T18:01:13.000Z\",\n      \"transactionId\": \"TXN-E0EF2ADA\",\n      \"codeAutorisation\": \"AUTH-E57F1377\",\n      \"recuXml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\r\\n<receipt>\\r\\n  <merchant>Hotel Management - Legacy Payment Gateway</merchant>\\r\\n  <reservationId>6ac688e8efcd3022040344e6</reservationId>\\r\\n  <transactionId>TXN-E0EF2ADA</transactionId>\\r\\n  <issueDate>2026-10-07T18:01:13Z</issueDate>\\r\\n  <amount currency=\\\"BIF\\\">300900.00</amount>\\r\\n  <status>SUCCESS</status>\\r\\n  <authorizationCode>AUTH-E57F1377</authorizationCode>\\r\\n</receipt>\"\n    },\n    \"reservation\": {\n      \"_id\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"chambre\": \"6ac6887869b9c32a72e567ab\",\n      \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n      \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n      \"nombrePersonnes\": 1,\n      \"statut\": \"cloturee\",\n      \"prixChambre\": 85000,\n      \"prixServices\": 0,\n      \"prixTotal\": 255000,\n      \"servicesConsommes\": [],\n      \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.160Z\",\n      \"__v\": 0\n    }\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "5. Get invoice (PAID, transactionId)",
+          "name": "Get invoice (payee, transactionId)",
           "event": [
             {
               "listen": "test",
@@ -667,56 +1254,155 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{apiUrl}}/invoices/{{invoiceId}}",
+              "raw": "{{apiUrl}}/factures/{{mainFactureId}}",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
-                "invoices",
-                "{{invoiceId}}"
+                "factures",
+                "{{mainFactureId}}"
               ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "Get invoice (payee, transactionId) - response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{mainFactureId}}",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{mainFactureId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"data\": {\n    \"_id\": \"6ac688e8efcd3022040344f3\",\n    \"reservation\": {\n      \"_id\": \"6ac688e8efcd3022040344e6\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"chambre\": {\n        \"_id\": \"6ac6887869b9c32a72e567ab\",\n        \"numero\": \"201\",\n        \"type\": \"double\"\n      },\n      \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n      \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n      \"nombrePersonnes\": 1,\n      \"statut\": \"cloturee\",\n      \"prixChambre\": 85000,\n      \"prixServices\": 0,\n      \"prixTotal\": 255000,\n      \"servicesConsommes\": [],\n      \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.160Z\",\n      \"__v\": 0\n    },\n    \"client\": {\n      \"_id\": \"6ac6887769b9c32a72e567a7\",\n      \"nom\": \"Dupont\",\n      \"prenom\": \"Jean\",\n      \"email\": \"jean@example.com\",\n      \"telephone\": \"+257 79 000 001\",\n      \"adresse\": \"Bujumbura, Burundi\"\n    },\n    \"lignes\": [\n      {\n        \"description\": \"Chambre 201 (double) — 3 nuit(s)\",\n        \"quantite\": 3,\n        \"prixUnitaire\": 85000,\n        \"total\": 255000,\n        \"_id\": \"6ac688e8efcd3022040344f4\"\n      }\n    ],\n    \"sousTotal\": 255000,\n    \"tva\": 0.18,\n    \"statut\": \"payee\",\n    \"methodePaiement\": \"carte\",\n    \"devise\": \"BIF\",\n    \"tentativesPaiement\": [\n      {\n        \"transactionId\": \"TXN-568E259C\",\n        \"statut\": \"DECLINED\",\n        \"codeAutorisation\": null,\n        \"date\": \"2026-10-07T18:01:12.000Z\"\n      },\n      {\n        \"transactionId\": \"TXN-E0EF2ADA\",\n        \"statut\": \"SUCCESS\",\n        \"codeAutorisation\": \"AUTH-E57F1377\",\n        \"date\": \"2026-10-07T18:01:13.000Z\"\n      }\n    ],\n    \"numero\": \"FACT-2026-0003\",\n    \"montantTVA\": 45900,\n    \"montantTotal\": 300900,\n    \"createdAt\": \"2026-10-07T18:01:12.437Z\",\n    \"updatedAt\": \"2026-10-07T18:01:13.153Z\",\n    \"__v\": 2,\n    \"codeAutorisation\": \"AUTH-E57F1377\",\n    \"datePaiement\": \"2026-10-07T18:01:13.000Z\",\n    \"recuXml\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\r\\n<receipt>\\r\\n  <merchant>Hotel Management - Legacy Payment Gateway</merchant>\\r\\n  <reservationId>6ac688e8efcd3022040344e6</reservationId>\\r\\n  <transactionId>TXN-E0EF2ADA</transactionId>\\r\\n  <issueDate>2026-10-07T18:01:13Z</issueDate>\\r\\n  <amount currency=\\\"BIF\\\">300900.00</amount>\\r\\n  <status>SUCCESS</status>\\r\\n  <authorizationCode>AUTH-E57F1377</authorizationCode>\\r\\n</receipt>\",\n    \"transactionId\": \"TXN-E0EF2ADA\"\n  }\n}"
             }
-          }
+          ]
         },
         {
-          "name": "6. Get reservation (CHECKED_OUT)",
+          "name": "Get reservation (cloturee)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('cloturee', () => pm.expect(pm.response.json().data.statut).to.eql('cloturee'));"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{apiUrl}}/reservations/{{reservationId}}",
+              "raw": "{{apiUrl}}/reservations/{{mainReservationId}}",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
                 "reservations",
-                "{{reservationId}}"
+                "{{mainReservationId}}"
               ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "Get reservation (cloturee) - response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{mainReservationId}}",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{mainReservationId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"data\": {\n    \"_id\": \"6ac688e8efcd3022040344e6\",\n    \"client\": {\n      \"_id\": \"6ac6887769b9c32a72e567a7\",\n      \"nom\": \"Dupont\",\n      \"prenom\": \"Jean\",\n      \"email\": \"jean@example.com\",\n      \"telephone\": \"+257 79 000 001\"\n    },\n    \"chambre\": {\n      \"_id\": \"6ac6887869b9c32a72e567ab\",\n      \"numero\": \"201\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double vue piscine\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"minibar\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    \"dateArrivee\": \"2028-06-21T00:00:00.000Z\",\n    \"dateDepart\": \"2028-06-24T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"cloturee\",\n    \"prixChambre\": 85000,\n    \"prixServices\": 0,\n    \"prixTotal\": 255000,\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:12.385Z\",\n    \"updatedAt\": \"2026-10-07T18:01:13.160Z\",\n    \"__v\": 0\n  }\n}"
             }
-          }
+          ]
         },
         {
-          "name": "7. Pay again - already paid",
+          "name": "Pay again - already paid",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));"
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -727,40 +1413,106 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "factures",
+                "{{mainFactureId}}",
+                "payer-carte"
+              ]
+            },
+            "description": "Rejected by factureService before calling the gateway.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cardToken\": \"TEST-CARD-OK\"\n}",
+              "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{apiUrl}}/invoices/{{invoiceId}}/pay",
-              "host": [
-                "{{apiUrl}}"
-              ],
-              "path": [
-                "invoices",
-                "{{invoiceId}}",
-                "pay"
-              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Pay again - already paid - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{mainFactureId}}/payer-carte",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{mainFactureId}}",
+                    "payer-carte"
+                  ]
+                },
+                "description": "Rejected by factureService before calling the gateway.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": false,\n  \"message\": \"Facture déjà payée (transaction TXN-E0EF2ADA).\"\n}"
+            }
+          ]
         },
         {
-          "name": "8. Create reservation in GBP",
+          "name": "Long stay - Create reservation (client)",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const start = new Date(Date.now() + (400 + Math.floor(Math.random() * 3000)) * 86400000);",
+                  "const end = new Date(start.getTime() + 50 * 86400000);",
+                  "pm.collectionVariables.set('bigArrivee', start.toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set('bigDepart', end.toISOString().slice(0, 10));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('gbpReservationId', pm.response.json()._id);"
+                  "pm.collectionVariables.set('bigReservationId', pm.response.json().data._id);"
                 ]
               }
             }
@@ -771,17 +1523,12 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"guestName\": \"Bob Hakizimana\",\n  \"guestEmail\": \"bob@example.com\",\n  \"roomNumber\": \"101\",\n  \"checkInDate\": \"2026-10-01\",\n  \"checkOutDate\": \"2026-10-04\",\n  \"nightlyRate\": 60,\n  \"currency\": \"GBP\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{apiUrl}}/reservations",
               "host": [
@@ -790,48 +1537,235 @@
               "path": [
                 "reservations"
               ]
+            },
+            "description": "Room 301, 50 night(s). Saves {{bigReservationId}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chambreId\": \"{{chambre301Id}}\",\n  \"dateArrivee\": \"{{bigArrivee}}\",\n  \"dateDepart\": \"{{bigDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Long stay - Create reservation (client) - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{clientToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ]
+                },
+                "description": "Room 301, 50 night(s). Saves {{bigReservationId}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chambreId\": \"{{chambre301Id}}\",\n  \"dateArrivee\": \"{{bigArrivee}}\",\n  \"dateDepart\": \"{{bigDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"data\": {\n    \"client\": {\n      \"_id\": \"6ac6887769b9c32a72e567a7\",\n      \"nom\": \"Dupont\",\n      \"prenom\": \"Jean\",\n      \"email\": \"jean@example.com\",\n      \"telephone\": \"+257 79 000 001\",\n      \"adresse\": \"Bujumbura, Burundi\",\n      \"role\": \"client\",\n      \"actif\": true,\n      \"createdAt\": \"2026-10-07T17:59:19.656Z\",\n      \"updatedAt\": \"2026-10-07T17:59:19.656Z\",\n      \"__v\": 0\n    },\n    \"chambre\": {\n      \"_id\": \"6ac6887869b9c32a72e567ad\",\n      \"numero\": \"301\",\n      \"type\": \"suite\",\n      \"prixParNuit\": 180000,\n      \"capacite\": 2,\n      \"description\": \"Suite luxueuse avec terrasse\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"jacuzzi\",\n        \"minibar\",\n        \"salon\"\n      ],\n      \"etage\": 3,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    \"dateArrivee\": \"2034-02-02T00:00:00.000Z\",\n    \"dateDepart\": \"2034-03-24T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"confirmee\",\n    \"prixChambre\": 180000,\n    \"prixServices\": 0,\n    \"prixTotal\": 9000000,\n    \"_id\": \"6ac688e9efcd302204034515\",\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:13.230Z\",\n    \"updatedAt\": \"2026-10-07T18:01:13.230Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "9. Create GBP invoice",
+          "name": "Long stay - Check-in (admin)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('gbpInvoiceId', pm.response.json()._id);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [],
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{apiUrl}}/reservations/{{gbpReservationId}}/invoice",
+              "raw": "{{apiUrl}}/reservations/{{bigReservationId}}/checkin",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
                 "reservations",
-                "{{gbpReservationId}}",
-                "invoice"
+                "{{bigReservationId}}",
+                "checkin"
               ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "Long stay - Check-in (admin) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{bigReservationId}}/checkin",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{bigReservationId}}",
+                    "checkin"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-in effectué.\",\n  \"data\": {\n    \"_id\": \"6ac688e9efcd302204034515\",\n    \"client\": \"6ac6887769b9c32a72e567a7\",\n    \"chambre\": \"6ac6887869b9c32a72e567ad\",\n    \"dateArrivee\": \"2034-02-02T00:00:00.000Z\",\n    \"dateDepart\": \"2034-03-24T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"en_cours\",\n    \"prixChambre\": 180000,\n    \"prixServices\": 0,\n    \"prixTotal\": 9000000,\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:13.230Z\",\n    \"updatedAt\": \"2026-10-07T18:01:13.253Z\",\n    \"__v\": 0\n  }\n}"
             }
-          }
+          ]
         },
         {
-          "name": "10. Pay GBP invoice - soap:Fault UNSUPPORTED_CURRENCY",
+          "name": "Long stay - Check-out (admin, invoice generated)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('bigFactureId', pm.response.json().data.facture._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/reservations/{{bigReservationId}}/checkout",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{bigReservationId}}",
+                "checkout"
+              ]
+            },
+            "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{bigFactureId}}."
+          },
+          "response": [
+            {
+              "name": "Long stay - Check-out (admin, invoice generated) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{bigReservationId}}/checkout",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{bigReservationId}}",
+                    "checkout"
+                  ]
+                },
+                "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{bigFactureId}}."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-out effectué. Facture générée.\",\n  \"data\": {\n    \"reservation\": {\n      \"_id\": \"6ac688e9efcd302204034515\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"chambre\": {\n        \"_id\": \"6ac6887869b9c32a72e567ad\",\n        \"numero\": \"301\",\n        \"type\": \"suite\",\n        \"prixParNuit\": 180000,\n        \"capacite\": 2,\n        \"description\": \"Suite luxueuse avec terrasse\",\n        \"equipements\": [\n          \"wifi\",\n          \"TV\",\n          \"climatisation\",\n          \"jacuzzi\",\n          \"minibar\",\n          \"salon\"\n        ],\n        \"etage\": 3,\n        \"disponible\": true,\n        \"images\": [],\n        \"__v\": 0,\n        \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n        \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n      },\n      \"dateArrivee\": \"2034-02-02T00:00:00.000Z\",\n      \"dateDepart\": \"2034-03-24T00:00:00.000Z\",\n      \"nombrePersonnes\": 1,\n      \"statut\": \"terminee\",\n      \"prixChambre\": 180000,\n      \"prixServices\": 0,\n      \"prixTotal\": 9000000,\n      \"servicesConsommes\": [],\n      \"createdAt\": \"2026-10-07T18:01:13.230Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.269Z\",\n      \"__v\": 0\n    },\n    \"facture\": {\n      \"reservation\": \"6ac688e9efcd302204034515\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"lignes\": [\n        {\n          \"description\": \"Chambre 301 (suite) — 50 nuit(s)\",\n          \"quantite\": 50,\n          \"prixUnitaire\": 180000,\n          \"total\": 9000000,\n          \"_id\": \"6ac688e9efcd302204034523\"\n        }\n      ],\n      \"sousTotal\": 9000000,\n      \"tva\": 0.18,\n      \"statut\": \"en_attente\",\n      \"methodePaiement\": \"non_defini\",\n      \"_id\": \"6ac688e9efcd302204034522\",\n      \"devise\": \"BIF\",\n      \"tentativesPaiement\": [],\n      \"numero\": \"FACT-2026-0004\",\n      \"montantTVA\": 1620000,\n      \"montantTotal\": 10620000,\n      \"createdAt\": \"2026-10-07T18:01:13.278Z\",\n      \"updatedAt\": \"2026-10-07T18:01:13.278Z\",\n      \"__v\": 0\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pay by card - soap:Fault AMOUNT_LIMIT_EXCEEDED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Business fault code', () => pm.expect(pm.response.json().code).to.eql('AMOUNT_LIMIT_EXCEEDED'));"
                 ]
               }
             }
@@ -842,46 +1776,99 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/factures/{{bigFactureId}}/payer-carte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "factures",
+                "{{bigFactureId}}",
+                "payer-carte"
+              ]
+            },
+            "description": "50 nights in the suite > 10,000,000 BIF terminal limit: the gateway answers with a <soap:Fault> (soap:Client) whose detail carries AMOUNT_LIMIT_EXCEEDED; the API maps it to HTTP 422 and the invoice is unchanged.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cardToken\": \"TEST-CARD-OK\"\n}",
+              "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{apiUrl}}/invoices/{{gbpInvoiceId}}/pay",
-              "host": [
-                "{{apiUrl}}"
+            }
+          },
+          "response": [
+            {
+              "name": "Pay by card - soap:Fault AMOUNT_LIMIT_EXCEEDED - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{bigFactureId}}/payer-carte",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{bigFactureId}}",
+                    "payer-carte"
+                  ]
+                },
+                "description": "50 nights in the suite > 10,000,000 BIF terminal limit: the gateway answers with a <soap:Fault> (soap:Client) whose detail carries AMOUNT_LIMIT_EXCEEDED; the API maps it to HTTP 422 and the invoice is unchanged.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
               ],
-              "path": [
-                "invoices",
-                "{{gbpInvoiceId}}",
-                "pay"
-              ]
-            },
-            "description": "The gateway answers with a <soap:Fault>; Node returns 422 with code UNSUPPORTED_CURRENCY."
-          }
+              "body": "{\n  \"succes\": false,\n  \"type\": \"PAIEMENT_REJETE\",\n  \"code\": \"AMOUNT_LIMIT_EXCEEDED\",\n  \"message\": \"Amount 10620000.00 exceeds the terminal limit of 10000000.00\",\n  \"details\": []\n}"
+            }
+          ]
         }
       ]
     },
     {
-      "name": "3. Error scenario - Spring Boot stopped",
+      "name": "3. Error scenario - Spring Boot stopped (run after stopping the gateway)",
       "item": [
         {
-          "name": "1. Create reservation",
+          "name": "Login admin",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('outageReservationId', pm.response.json()._id);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
                 ]
               }
             }
@@ -894,15 +1881,268 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/auth/connexion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "auth",
+                "connexion"
+              ]
+            },
+            "description": "Seeded admin (npm run seed). Saves {{adminToken}}.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"guestName\": \"Carla Iradukunda\",\n  \"guestEmail\": \"carla@example.com\",\n  \"roomNumber\": \"305\",\n  \"checkInDate\": \"2026-10-01\",\n  \"checkOutDate\": \"2026-10-04\",\n  \"nightlyRate\": 70,\n  \"currency\": \"EUR\"\n}",
+              "raw": "{\n  \"email\": \"admin@hotel.com\",\n  \"motDePasse\": \"admin123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          },
+          "response": [
+            {
+              "name": "Login admin - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/auth/connexion",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "connexion"
+                  ]
+                },
+                "description": "Seeded admin (npm run seed). Saves {{adminToken}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@hotel.com\",\n  \"motDePasse\": \"admin123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"token\": \"<jwt-token>\",\n  \"data\": {\n    \"_id\": \"6ac6887769b9c32a72e567a5\",\n    \"nom\": \"Admin\",\n    \"prenom\": \"Hotel\",\n    \"email\": \"admin@hotel.com\",\n    \"role\": \"admin\",\n    \"actif\": true,\n    \"createdAt\": \"2026-10-07T17:59:19.264Z\",\n    \"updatedAt\": \"2026-10-07T17:59:19.264Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('clientToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/auth/connexion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "auth",
+                "connexion"
+              ]
             },
+            "description": "Seeded client. Saves {{clientToken}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jean@example.com\",\n  \"motDePasse\": \"client123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Login client - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/auth/connexion",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "connexion"
+                  ]
+                },
+                "description": "Seeded client. Saves {{clientToken}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"jean@example.com\",\n  \"motDePasse\": \"client123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"token\": \"<jwt-token>\",\n  \"data\": {\n    \"_id\": \"6ac6887769b9c32a72e567a7\",\n    \"nom\": \"Dupont\",\n    \"prenom\": \"Jean\",\n    \"email\": \"jean@example.com\",\n    \"telephone\": \"+257 79 000 001\",\n    \"adresse\": \"Bujumbura, Burundi\",\n    \"role\": \"client\",\n    \"actif\": true,\n    \"createdAt\": \"2026-10-07T17:59:19.656Z\",\n    \"updatedAt\": \"2026-10-07T17:59:19.656Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List rooms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const rooms = pm.response.json().data;",
+                  "pm.collectionVariables.set('chambre201Id', rooms.find(c => c.numero === '201')._id);",
+                  "pm.collectionVariables.set('chambre301Id', rooms.find(c => c.numero === '301')._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/chambres",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "chambres"
+              ]
+            },
+            "description": "Saves {{chambre201Id}} (double) and {{chambre301Id}} (suite)."
+          },
+          "response": [
+            {
+              "name": "List rooms - response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/chambres",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "chambres"
+                  ]
+                },
+                "description": "Saves {{chambre201Id}} (double) and {{chambre301Id}} (suite)."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"total\": 6,\n  \"data\": [\n    {\n      \"_id\": \"6ac6887869b9c32a72e567a9\",\n      \"numero\": \"101\",\n      \"type\": \"simple\",\n      \"prixParNuit\": 50000,\n      \"capacite\": 1,\n      \"description\": \"Chambre simple confortable\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\"\n      ],\n      \"etage\": 1,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567aa\",\n      \"numero\": \"102\",\n      \"type\": \"simple\",\n      \"prixParNuit\": 50000,\n      \"capacite\": 1,\n      \"description\": \"Chambre simple vue jardin\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\"\n      ],\n      \"etage\": 1,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ab\",\n      \"numero\": \"201\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double vue piscine\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"minibar\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ac\",\n      \"numero\": \"202\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double standard\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ae\",\n      \"numero\": \"401\",\n      \"type\": \"familiale\",\n      \"prixParNuit\": 130000,\n      \"capacite\": 4,\n      \"description\": \"Suite familiale 2 chambres\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"cuisine\"\n      ],\n      \"etage\": 4,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    {\n      \"_id\": \"6ac6887869b9c32a72e567ad\",\n      \"numero\": \"301\",\n      \"type\": \"suite\",\n      \"prixParNuit\": 180000,\n      \"capacite\": 2,\n      \"description\": \"Suite luxueuse avec terrasse\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"jacuzzi\",\n        \"minibar\",\n        \"salon\"\n      ],\n      \"etage\": 3,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Outage - Create reservation (client)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const start = new Date(Date.now() + (400 + Math.floor(Math.random() * 3000)) * 86400000);",
+                  "const end = new Date(start.getTime() + 1 * 86400000);",
+                  "pm.collectionVariables.set('outageArrivee', start.toISOString().slice(0, 10));",
+                  "pm.collectionVariables.set('outageDepart', end.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('outageReservationId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
             "url": {
               "raw": "{{apiUrl}}/reservations",
               "host": [
@@ -911,48 +2151,235 @@
               "path": [
                 "reservations"
               ]
+            },
+            "description": "Room 201, 1 night(s). Saves {{outageReservationId}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chambreId\": \"{{chambre201Id}}\",\n  \"dateArrivee\": \"{{outageArrivee}}\",\n  \"dateDepart\": \"{{outageDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Outage - Create reservation (client) - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{clientToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations"
+                  ]
+                },
+                "description": "Room 201, 1 night(s). Saves {{outageReservationId}}.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"chambreId\": \"{{chambre201Id}}\",\n  \"dateArrivee\": \"{{outageArrivee}}\",\n  \"dateDepart\": \"{{outageDepart}}\",\n  \"nombrePersonnes\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"data\": {\n    \"client\": {\n      \"_id\": \"6ac6887769b9c32a72e567a7\",\n      \"nom\": \"Dupont\",\n      \"prenom\": \"Jean\",\n      \"email\": \"jean@example.com\",\n      \"telephone\": \"+257 79 000 001\",\n      \"adresse\": \"Bujumbura, Burundi\",\n      \"role\": \"client\",\n      \"actif\": true,\n      \"createdAt\": \"2026-10-07T17:59:19.656Z\",\n      \"updatedAt\": \"2026-10-07T17:59:19.656Z\",\n      \"__v\": 0\n    },\n    \"chambre\": {\n      \"_id\": \"6ac6887869b9c32a72e567ab\",\n      \"numero\": \"201\",\n      \"type\": \"double\",\n      \"prixParNuit\": 85000,\n      \"capacite\": 2,\n      \"description\": \"Chambre double vue piscine\",\n      \"equipements\": [\n        \"wifi\",\n        \"TV\",\n        \"climatisation\",\n        \"minibar\"\n      ],\n      \"etage\": 2,\n      \"disponible\": true,\n      \"images\": [],\n      \"__v\": 0,\n      \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n      \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n    },\n    \"dateArrivee\": \"2034-04-20T00:00:00.000Z\",\n    \"dateDepart\": \"2034-04-21T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"confirmee\",\n    \"prixChambre\": 85000,\n    \"prixServices\": 0,\n    \"prixTotal\": 85000,\n    \"_id\": \"6ac688f3efcd30220403452e\",\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:23.772Z\",\n    \"updatedAt\": \"2026-10-07T18:01:23.772Z\",\n    \"__v\": 0\n  }\n}"
+            }
+          ]
         },
         {
-          "name": "2. Create invoice",
+          "name": "Outage - Check-in (admin)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set('outageInvoiceId', pm.response.json()._id);"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [],
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{apiUrl}}/reservations/{{outageReservationId}}/invoice",
+              "raw": "{{apiUrl}}/reservations/{{outageReservationId}}/checkin",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
                 "reservations",
                 "{{outageReservationId}}",
-                "invoice"
+                "checkin"
               ]
+            },
+            "description": ""
+          },
+          "response": [
+            {
+              "name": "Outage - Check-in (admin) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{outageReservationId}}/checkin",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{outageReservationId}}",
+                    "checkin"
+                  ]
+                },
+                "description": ""
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-in effectué.\",\n  \"data\": {\n    \"_id\": \"6ac688f3efcd30220403452e\",\n    \"client\": \"6ac6887769b9c32a72e567a7\",\n    \"chambre\": \"6ac6887869b9c32a72e567ab\",\n    \"dateArrivee\": \"2034-04-20T00:00:00.000Z\",\n    \"dateDepart\": \"2034-04-21T00:00:00.000Z\",\n    \"nombrePersonnes\": 1,\n    \"statut\": \"en_cours\",\n    \"prixChambre\": 85000,\n    \"prixServices\": 0,\n    \"prixTotal\": 85000,\n    \"servicesConsommes\": [],\n    \"createdAt\": \"2026-10-07T18:01:23.772Z\",\n    \"updatedAt\": \"2026-10-07T18:01:23.792Z\",\n    \"__v\": 0\n  }\n}"
             }
-          }
+          ]
         },
         {
-          "name": "3. Pay while Spring Boot is stopped",
+          "name": "Outage - Check-out (admin, invoice generated)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('HTTP 503', () => pm.response.to.have.status(503));"
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('outageFactureId', pm.response.json().data.facture._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/reservations/{{outageReservationId}}/checkout",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "reservations",
+                "{{outageReservationId}}",
+                "checkout"
+              ]
+            },
+            "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{outageFactureId}}."
+          },
+          "response": [
+            {
+              "name": "Outage - Check-out (admin, invoice generated) - response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/reservations/{{outageReservationId}}/checkout",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "reservations",
+                    "{{outageReservationId}}",
+                    "checkout"
+                  ]
+                },
+                "description": "Reservation becomes terminee and a Facture (statut en_attente, devise BIF) is created. Saves {{outageFactureId}}."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"succes\": true,\n  \"message\": \"Check-out effectué. Facture générée.\",\n  \"data\": {\n    \"reservation\": {\n      \"_id\": \"6ac688f3efcd30220403452e\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"chambre\": {\n        \"_id\": \"6ac6887869b9c32a72e567ab\",\n        \"numero\": \"201\",\n        \"type\": \"double\",\n        \"prixParNuit\": 85000,\n        \"capacite\": 2,\n        \"description\": \"Chambre double vue piscine\",\n        \"equipements\": [\n          \"wifi\",\n          \"TV\",\n          \"climatisation\",\n          \"minibar\"\n        ],\n        \"etage\": 2,\n        \"disponible\": true,\n        \"images\": [],\n        \"__v\": 0,\n        \"createdAt\": \"2026-10-07T17:59:20.140Z\",\n        \"updatedAt\": \"2026-10-07T17:59:20.140Z\"\n      },\n      \"dateArrivee\": \"2034-04-20T00:00:00.000Z\",\n      \"dateDepart\": \"2034-04-21T00:00:00.000Z\",\n      \"nombrePersonnes\": 1,\n      \"statut\": \"terminee\",\n      \"prixChambre\": 85000,\n      \"prixServices\": 0,\n      \"prixTotal\": 85000,\n      \"servicesConsommes\": [],\n      \"createdAt\": \"2026-10-07T18:01:23.772Z\",\n      \"updatedAt\": \"2026-10-07T18:01:23.806Z\",\n      \"__v\": 0\n    },\n    \"facture\": {\n      \"reservation\": \"6ac688f3efcd30220403452e\",\n      \"client\": \"6ac6887769b9c32a72e567a7\",\n      \"lignes\": [\n        {\n          \"description\": \"Chambre 201 (double) — 1 nuit(s)\",\n          \"quantite\": 1,\n          \"prixUnitaire\": 85000,\n          \"total\": 85000,\n          \"_id\": \"6ac688f3efcd30220403453c\"\n        }\n      ],\n      \"sousTotal\": 85000,\n      \"tva\": 0.18,\n      \"statut\": \"en_attente\",\n      \"methodePaiement\": \"non_defini\",\n      \"_id\": \"6ac688f3efcd30220403453b\",\n      \"devise\": \"BIF\",\n      \"tentativesPaiement\": [],\n      \"numero\": \"FACT-2026-0005\",\n      \"montantTVA\": 15300,\n      \"montantTotal\": 100300,\n      \"createdAt\": \"2026-10-07T18:01:23.814Z\",\n      \"updatedAt\": \"2026-10-07T18:01:23.814Z\",\n      \"__v\": 0\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Pay while Spring Boot is stopped",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 503', () => pm.response.to.have.status(503));",
+                  "pm.test('Gateway unavailable', () => pm.expect(pm.response.json().type).to.eql('PASSERELLE_INDISPONIBLE'));"
                 ]
               }
             }
@@ -963,30 +2390,83 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
               }
             ],
+            "url": {
+              "raw": "{{apiUrl}}/factures/{{outageFactureId}}/payer-carte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "factures",
+                "{{outageFactureId}}",
+                "payer-carte"
+              ]
+            },
+            "description": "Stop the Spring Boot gateway first. The SOAP client gets ECONNREFUSED: HTTP 503, invoice unchanged.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cardToken\": \"TEST-CARD-OK\"\n}",
+              "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{apiUrl}}/invoices/{{outageInvoiceId}}/pay",
-              "host": [
-                "{{apiUrl}}"
+            }
+          },
+          "response": [
+            {
+              "name": "Pay while Spring Boot is stopped - response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{apiUrl}}/factures/{{outageFactureId}}/payer-carte",
+                  "host": [
+                    "{{apiUrl}}"
+                  ],
+                  "path": [
+                    "factures",
+                    "{{outageFactureId}}",
+                    "payer-carte"
+                  ]
+                },
+                "description": "Stop the Spring Boot gateway first. The SOAP client gets ECONNREFUSED: HTTP 503, invoice unchanged.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"cardToken\": \"tok_visa_4242\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
               ],
-              "path": [
-                "invoices",
-                "{{outageInvoiceId}}",
-                "pay"
-              ]
-            },
-            "description": "STOP the Spring Boot service before sending this request. Expected: 503 PAYMENT_GATEWAY_UNAVAILABLE, invoice unchanged."
-          }
+              "body": "{\n  \"succes\": false,\n  \"type\": \"PASSERELLE_INDISPONIBLE\",\n  \"message\": \"Passerelle de paiement indisponible. Réessayez plus tard.\",\n  \"details\": [\n    \"Payment gateway call failed: gateway unreachable (ECONNREFUSED)\"\n  ]\n}"
+            }
+          ]
         }
       ]
     }
