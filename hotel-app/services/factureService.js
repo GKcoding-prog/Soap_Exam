@@ -44,8 +44,18 @@ const cloturerReservation = async (reservationId) => {
   return reservation;
 };
 
+// Methods the desk can record by hand. Card payments must go through the SOAP
+// gateway (enregistrerPaiementCarte) so that every one has a transactionId.
+const METHODES_MANUELLES = ['especes', 'virement'];
+
 // Manual payment recorded at the desk (cash, transfer...)
 const enregistrerPaiement = async (id, methodePaiement = 'especes') => {
+  if (methodePaiement === 'carte') {
+    throw new ErreurMetier('Le paiement par carte passe par la passerelle : utilisez POST /api/factures/:id/payer-carte.', 400);
+  }
+  if (!METHODES_MANUELLES.includes(methodePaiement)) {
+    throw new ErreurMetier(`Méthode de paiement invalide. Valeurs acceptées : ${METHODES_MANUELLES.join(', ')}.`, 400);
+  }
   const facture = await trouverFacture(id);
   verifierPayable(facture);
   marquerPayee(facture, methodePaiement);

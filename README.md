@@ -162,7 +162,7 @@ Fichiers ajoutés / modifiés dans `hotel-app` pour l'intégration SOAP :
 |---|---|
 | `services/paymentSoapClient.js` | Client SOAP : `createClientAsync`, appel asynchrone, mapping XML → JSON, classification des erreurs (`FAULT` / `UNAVAILABLE` / `TIMEOUT`) |
 | `services/paiementSoapService.js` | Adaptateur : facture → requête SOAP → résultat confié à `factureService` (aucune règle métier) |
-| `services/factureService.js` | Logique métier facture, partagée par le paiement manuel (`PUT /payer`) et le paiement par carte |
+| `services/factureService.js` | Logique métier facture, partagée par le paiement manuel (`PUT /payer`, espèces ou virement uniquement) et le paiement par carte, qui passe obligatoirement par la passerelle SOAP |
 | `models/Facture.js` | Nouveaux champs `devise`, `transactionId`, `codeAutorisation`, `recuXml`, `tentativesPaiement` |
 | `models/Reservation.js` | Nouveau statut `cloturee` (séjour terminé **et** payé) |
 | `controllers/factureController.js` | `payerFactureCarte` + traduction des erreurs passerelle en codes HTTP |
