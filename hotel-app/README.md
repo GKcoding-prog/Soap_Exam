@@ -7,6 +7,7 @@ REST API complète — Node.js + Express + MongoDB
 ## ⚙️ Installation
 
 ```bash
+cd hotel-app           # depuis la racine du dépôt
 npm install
 cp .env.example .env   # Remplir MONGO_URI et JWT_SECRET
 npm run seed           # Données de test
@@ -108,8 +109,8 @@ Authorization: Bearer <token>
 
 ### 💳 Paiement par carte (passerelle SOAP)
 
-Le paiement par carte est délégué à la passerelle bancaire legacy (Spring Boot / SOAP) du dépôt
-[Soap_Exam](https://github.com/GKcoding-prog/Soap_Exam), qui doit tourner sur le port 8080.
+Le paiement par carte est délégué à la passerelle bancaire legacy (Spring Boot / SOAP) du dossier
+[`legacy-payment-gateway/`](../legacy-payment-gateway) de ce dépôt (voir le [README principal](../README.md)), qui doit tourner sur le port 8080.
 Si le paiement est accepté, la facture enregistre le `transactionId`, le code d'autorisation et le reçu XML.
 
 | Réponse | Signification |
@@ -137,7 +138,7 @@ Variables `.env` : `PAYMENT_GATEWAY_WSDL_URL`, `PAYMENT_GATEWAY_TIMEOUT_MS`, `PA
 ## 📁 Structure du projet
 
 ```
-hotel-api/
+hotel-app/
 ├── config/
 │   └── db.js               # Connexion MongoDB
 ├── controllers/

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Hotel Management - SOAP Payment Gateway (Project F)",
-    "description": "Folder 1: SOAP calls to the Spring Boot legacy-payment-gateway (each with the full XML response saved as an example).\nFolder 2: REST calls to the Hotel_JS_NoSQL API (port 5000), which consumes the SOAP service on invoice payment and updates MongoDB (Facture + Reservation). Run `npm run seed` first, then run the folder with the Collection Runner.\nFolder 3: run after stopping Spring Boot to check the outage handling.",
+    "description": "Folder 1: SOAP calls to the Spring Boot legacy-payment-gateway (each with the full XML response saved as an example).\nFolder 2: REST calls to the hotel-app API (port 5000), which consumes the SOAP service on invoice payment and updates MongoDB (Facture + Reservation). Run `npm run seed` first, then run the folder with the Collection Runner.\nFolder 3: run after stopping Spring Boot to check the outage handling.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -528,7 +528,7 @@
       ]
     },
     {
-      "name": "2. REST - Hotel API (Hotel_JS_NoSQL, Node.js + MongoDB)",
+      "name": "2. REST - Hotel API (hotel-app, Node.js + MongoDB)",
       "item": [
         {
           "name": "Login admin",

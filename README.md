@@ -2,9 +2,8 @@
 
 Projet d'examen **API SOAP : Intégration & Interopérabilité (SOAP / REST)** — UPG TIC/GL4 2025-2026, Groupe 6.
 
-Lors du check-out d'un client, l'application hôtelière moderne
-[**Hotel_JS_NoSQL**](https://github.com/GKcoding-prog/Hotel_JS_NoSQL) (Node.js / Express / MongoDB,
-projet de l'examen JavaScript & NoSQL) envoie la facture à une passerelle de paiement bancaire « legacy » (Spring Boot / SQL / SOAP).
+Lors du check-out d'un client, l'application hôtelière moderne (`hotel-app/` : Node.js / Express /
+MongoDB, projet de l'examen JavaScript & NoSQL) envoie la facture à une passerelle de paiement bancaire « legacy » (Spring Boot / SQL / SOAP).
 La passerelle enregistre la transaction et le reçu dans sa base SQL, puis renvoie le statut,
 le numéro de transaction, le code d'autorisation et le reçu XML. Si le paiement réussit,
 Node.js marque la `Facture` comme payée (avec le `transactionId`) et clôture la `Reservation` dans MongoDB.
@@ -36,7 +35,7 @@ Node.js marque la `Facture` comme payée (avec le `transactionId`) et clôture l
         │  POST /api/factures/:id/payer-carte   { cardToken }   (JWT admin)
         ▼
 ┌──────────────────────────────┐        SOAP 1.1 / XML         ┌───────────────────────────────┐
-│  Hotel_JS_NoSQL (Node.js)    │ ────────────────────────────▶ │ legacy-payment-gateway         │
+│  hotel-app (Node.js)         │ ────────────────────────────▶ │ legacy-payment-gateway         │
 │  Express + Mongoose          │  processPaymentAndGenerate-   │ Spring Boot + Spring-WS        │
 │  client SOAP : lib "soap"    │  ReceiptRequest               │ @Endpoint / @PayloadRoot       │
 │  port 5000                   │ ◀──────────────────────────── │ port 8080                      │
@@ -51,10 +50,10 @@ Node.js marque la `Facture` comme payée (avec le `transactionId`) et clôture l
 | Application | Rôle | Technologies |
 |---|---|---|
 | `legacy-payment-gateway` | Serveur SOAP (système legacy) | Java 25, Spring Boot 3.5, Spring-WS, Spring Data JPA, H2, jaxb2-maven-plugin |
-| [`Hotel_JS_NoSQL`](https://github.com/GKcoding-prog/Hotel_JS_NoSQL) (dépôt séparé) | Application hôtelière existante, étendue en client SOAP | Node.js 18+, Express 4, Mongoose 7, librairie `soap` |
+| `hotel-app` | Application hôtelière existante (API REST + frontend), étendue en client SOAP | Node.js 18+, Express 4, Mongoose 7, librairie `soap` |
 
-> Le dossier `hotel-api/` de ce dépôt est le prototype qui a servi à mettre au point le client SOAP.
-> L'intégration livrée est celle de **Hotel_JS_NoSQL** (voir section 6).
+> `hotel-app/` est le projet de l'examen JavaScript & NoSQL (anciennement le dépôt `Hotel_JS_NoSQL`),
+> importé ici avec tout son historique git.
 
 ---
 
@@ -87,8 +86,10 @@ Ports utilisés : **8080** (Spring Boot), **5000** (Node.js), **27017** (MongoDB
 
 ```bash
 git clone https://github.com/GKcoding-prog/Soap_Exam.git
-git clone https://github.com/GKcoding-prog/Hotel_JS_NoSQL.git
+cd Soap_Exam
 ```
+
+Les deux applications sont dans ce dépôt : `legacy-payment-gateway/` (Spring Boot) et `hotel-app/` (Node.js).
 
 ---
 
@@ -134,10 +135,10 @@ La base `hotel_db` (variable `MONGO_URI`) est remplie par `npm run seed` (sectio
 
 ## 6. Lancer l'API hôtelière (Node.js)
 
-Dans un **deuxième terminal**, dans le dépôt **Hotel_JS_NoSQL** :
+Dans un **deuxième terminal** :
 
 ```bash
-cd Hotel_JS_NoSQL
+cd hotel-app
 npm install
 cp .env.example .env        # Linux / macOS / Git Bash  (Windows : copy .env.example .env)
 npm run seed                # chambres, services, admin@hotel.com / admin123, jean@example.com / client123
@@ -155,7 +156,7 @@ Variables de `.env` liées à la passerelle :
 | `PAYMENT_GATEWAY_TIMEOUT_MS` | `10000` | Délai maximal d'attente de la passerelle |
 | `PAYMENT_CURRENCY` | `BIF` | Devise des nouvelles factures (doit être acceptée par la passerelle) |
 
-Fichiers ajoutés / modifiés dans Hotel_JS_NoSQL pour l'intégration :
+Fichiers ajoutés / modifiés dans `hotel-app` pour l'intégration SOAP :
 
 | Fichier | Rôle |
 |---|---|
@@ -188,7 +189,7 @@ Appels SOAP directs à la passerelle. Chaque requête contient l'**enveloppe XML
 | Fault - UNSUPPORTED_CURRENCY | `<soap:Fault>` `Client` avec le code métier dans `<detail>` |
 | Fault - AMOUNT_LIMIT_EXCEEDED | `<soap:Fault>` `Client` avec le code métier dans `<detail>` |
 
-### Dossier 2 — REST : Hotel API (Hotel_JS_NoSQL)
+### Dossier 2 — REST : Hotel API (hotel-app)
 
 Scénario complet : connexion → réservation → check-in → check-out (facture générée) → paiement par carte.
 Les jetons JWT et les identifiants sont enregistrés automatiquement d'une requête à l'autre ; chaque requête
@@ -231,7 +232,7 @@ curl -X POST http://localhost:8080/ws -H "Content-Type: text/xml" -d '
   </soapenv:Body>
 </soapenv:Envelope>'
 
-# Paiement d'une facture via Hotel_JS_NoSQL (jeton admin obtenu par POST /api/auth/connexion)
+# Paiement d'une facture via hotel-app (jeton admin obtenu par POST /api/auth/connexion)
 curl -X POST http://localhost:5000/api/factures/FACTURE_ID/payer-carte \
   -H "Authorization: Bearer ADMIN_TOKEN" -H "Content-Type: application/json" \
   -d '{"cardToken":"TEST-CARD-OK"}'
@@ -289,7 +290,8 @@ curl -X POST http://localhost:5000/api/factures/FACTURE_ID/payer-carte \
 
 ## 10. API REST Node.js
 
-Base : `http://localhost:5000/api` (Hotel_JS_NoSQL). Route ajoutée :
+Base : `http://localhost:5000/api` (`hotel-app`). Route ajoutée pour l'intégration (la liste complète
+des routes est dans [`hotel-app/README.md`](hotel-app/README.md)) :
 
 | Méthode | Route | Auth | Description |
 |---|---|---|---|
@@ -319,9 +321,9 @@ La facture est générée automatiquement au check-out (`PUT /reservations/:id/c
 | Critère | Où le vérifier |
 |---|---|
 | **Qualité du contrat (WSDL/XSD)** | `payment-gateway.xsd` : types simples restreints (énumérations, motifs, `xs:decimal`, `xs:dateTime`), namespace qualifié, correspondance avec les tables documentée dans le XSD et en section 9, faute déclarée dans le WSDL. Validation des requêtes et réponses : `WebServiceConfig.addInterceptors`. |
-| **Consommation & mapping (Node.js)** | `Hotel_JS_NoSQL/services/paymentSoapClient.js` : `soap.createClientAsync`, appel `processPaymentAndGenerateReceiptAsync` (async/await), conversion de la réponse en JSON typé (`Number`, `Date`) avant l'enregistrement. |
-| **Intégration & réutilisation** | `Hotel_JS_NoSQL/services/paiementSoapService.js` est un adaptateur sans logique métier : il appelle `factureService` (facture payable, enregistrement du paiement, clôture de la réservation), le même service que le paiement manuel `PUT /factures/:id/payer`, sur les modèles Mongoose existants `Facture` et `Reservation`. |
-| **Gestion des erreurs** | Spring : `PaymentGatewayException` + `PaymentFaultResolver` (fautes `Client`/`Server` avec `<detail>`). Node : `PaymentGatewayError` (FAULT / UNAVAILABLE / TIMEOUT) dans `paymentSoapClient.js`, traduit en codes HTTP dans `controllers/factureController.js`. Testé dans les dossiers Postman 2 (faute métier) et 3 (passerelle arrêtée). |
+| **Consommation & mapping (Node.js)** | `hotel-app/services/paymentSoapClient.js` : `soap.createClientAsync`, appel `processPaymentAndGenerateReceiptAsync` (async/await), conversion de la réponse en JSON typé (`Number`, `Date`) avant l'enregistrement. |
+| **Intégration & réutilisation** | `hotel-app/services/paiementSoapService.js` est un adaptateur sans logique métier : il appelle `factureService` (facture payable, enregistrement du paiement, clôture de la réservation), le même service que le paiement manuel `PUT /factures/:id/payer`, sur les modèles Mongoose existants `Facture` et `Reservation`. |
+| **Gestion des erreurs** | Spring : `PaymentGatewayException` + `PaymentFaultResolver` (fautes `Client`/`Server` avec `<detail>`). Node : `PaymentGatewayError` (FAULT / UNAVAILABLE / TIMEOUT) dans `paymentSoapClient.js`, traduit en codes HTTP dans `hotel-app/controllers/factureController.js`. Testé dans les dossiers Postman 2 (faute métier) et 3 (passerelle arrêtée). |
 
 ---
 
@@ -344,20 +346,16 @@ Soap_Exam/
 │           ├── model/TransactionReceipt.java         Table transaction_receipt
 │           ├── repository/PaymentTransactionRepository.java   Spring Data JPA
 │           └── exception/                            Fautes SOAP métier
-├── hotel-api/                              Prototype du client SOAP (l'intégration livrée est dans Hotel_JS_NoSQL)
-│   ├── package.json
-│   ├── .env.example
-│   └── src/
-│       ├── app.js                          Routes + middleware d'erreurs
-│       ├── errors.js                       Erreurs applicatives (400/404/409)
-│       ├── config/db.js                    Connexion Mongoose
-│       ├── models/Reservation.js, Invoice.js
-│       ├── routes/reservations.js, invoices.js
-│       └── services/
-│           ├── reservationService.js       Logique métier réservation
-│           ├── invoiceService.js           Logique métier facture
-│           ├── paymentSoapClient.js        Client SOAP + mapping XML → JSON + fautes
-│           └── paymentIntegrationService.js  Adaptateur SOAP ↔ services existants
+├── hotel-app/                              Système moderne (projet JavaScript & NoSQL, client SOAP)
+│   ├── package.json, .env.example
+│   ├── server.js, seed.js                  Serveur Express (port 5000), données de démonstration
+│   ├── models/                             Mongoose : Facture, Reservation, Chambre, Service, User, Notification
+│   ├── controllers/, routes/, middleware/  API REST (JWT)
+│   ├── services/
+│   │   ├── paymentSoapClient.js            Client SOAP + mapping XML → JSON + fautes
+│   │   ├── paiementSoapService.js          Adaptateur SOAP ↔ services existants
+│   │   └── factureService.js               Logique métier facture (paiement, clôture)
+│   └── public/                             Frontend (bouton 💳 Payer)
 └── postman/
     └── soap-payment.postman_collection.json  Requêtes SOAP + réponses XML, scénario REST
 ```
