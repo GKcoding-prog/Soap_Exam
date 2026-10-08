@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏨 Hôtel Manager</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════ AUTH PAGE ═══════════════════════ -->
+<div id="auth-page" class="active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="hotel-icon">🏨</div>
+      <h1>Hôtel Manager</h1>
+      <p>Système de gestion hôtelière</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Connexion</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Inscription</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form" class="auth-form active">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="votre@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="login-password" placeholder="••••••••" />
+      </div>
+      <button class="auth-submit" onclick="login()">Se connecter</button>
+      <p class="text-muted mt-1" style="text-align:center;font-size:.75rem;">
+        Admin: admin2@hotel.com / admin123 &nbsp;
+      </p>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="register-form" class="auth-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nom</label>
+          <input type="text" id="reg-nom" placeholder="Nom" />
+        </div>
+        <div class="form-group">
+          <label>Prénom</label>
+          <input type="text" id="reg-prenom" placeholder="Prénom" />
+        </div>
+      </div>
+      <div class="form-group mt-1">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="votre@email.com" />
+      </div>
+      <div class="form-group mt-1">
+        <label>Téléphone</label>
+        <input type="text" id="reg-tel" placeholder="+257 79 000 000" />
+      </div>
+      <div class="form-group mt-1">
+        <label>Mot de passe</label>
+        <input type="password" id="reg-password" placeholder="min. 6 caractères" />
+      </div>
+      <button class="auth-submit" onclick="register()">Créer mon compte</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ APP SHELL ═══════════════════════ -->
+<div id="app-page" style="display:none">
+  <div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h2>🏨 Hôtel Manager</h2>
+        <span>Système de gestion</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <button class="nav-link active" onclick="navigate('dashboard')"><span class="icon">📊</span> Tableau de bord</button>
+        <button class="nav-link" onclick="navigate('chambres')"><span class="icon">🛏️</span> Chambres</button>
+        <button class="nav-link" onclick="navigate('reservations')"><span class="icon">📅</span> Réservations</button>
+
+        <div class="nav-section admin-only" style="display:none">Administration</div>
+        <button class="nav-link admin-only" style="display:none" onclick="navigate('clients')"><span class="icon">👥</span> Clients</button>
+        <button class="nav-link admin-only" style="display:none" onclick="navigate('services-admin')"><span class="icon">🍽️</span> Services</button>
+        <button class="nav-link admin-only" style="display:none" onclick="navigate('factures')"><span class="icon">🧾</span> Factures</button>
+
+        <div class="nav-section client-only" style="display:none">Mon compte</div>
+        <button class="nav-link client-only" style="display:none" onclick="navigate('mes-factures')"><span class="icon">🧾</span> Mes factures</button>
+        <button class="nav-link client-only" style="display:none" onclick="navigate('services-client')"><span class="icon">🍽️</span> Services</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="user-info-sidebar"><strong>—</strong></div>
+        <button class="nav-link" style="margin-top:8px;color:rgba(255,255,255,.5)" onclick="logout()">
+          <span class="icon">🚪</span> Déconnexion
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+      <div class="topbar">
+        <h1 id="page-title">Tableau de bord</h1>
+        <div class="topbar-actions">
+          <button class="notif-btn" onclick="toggleNotifPanel()" title="Notifications">
+            🔔 <span class="notif-badge" id="notif-count" style="display:none">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="page-content">
+
+        <!-- ── DASHBOARD ── -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card"><div class="stat-icon blue">🛏️</div><div><div class="stat-value" id="stat-chambres">—</div><div class="stat-label">Chambres disponibles</div></div></div>
+            <div class="stat-card"><div class="stat-icon gold">📅</div><div><div class="stat-value" id="stat-reservations">—</div><div class="stat-label">Réservations actives</div></div></div>
+            <div class="stat-card admin-only" style="display:none"><div class="stat-icon green">💰</div><div><div class="stat-value" id="stat-revenus">—</div><div class="stat-label">Revenus (BIF)</div></div></div>
+            <div class="stat-card admin-only" style="display:none"><div class="stat-icon red">👥</div><div><div class="stat-value" id="stat-clients">—</div><div class="stat-label">Clients enregistrés</div></div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📅 Dernières réservations</span>
+              <button class="btn btn-primary btn-sm" onclick="navigate('reservations')">Voir tout</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Client</th><th>Chambre</th><th>Arrivée</th><th>Départ</th><th>Statut</th></tr></thead>
+                <tbody id="dashboard-reservations"><tr><td colspan="5" class="text-muted" style="padding:20px;text-align:center">Chargement…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CHAMBRES ── -->
+        <div class="page" id="page-chambres">
+          <div class="card-header" style="margin-bottom:18px">
+            <span></span>
+            <button class="btn btn-primary admin-only" style="display:none" onclick="openModal('modal-chambre')">+ Nouvelle chambre</button>
+          </div>
+          <!-- Availability Search -->
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-title" style="margin-bottom:14px">🔍 Rechercher une chambre disponible</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Date d'arrivée</label><input type="date" id="search-arrivee" /></div>
+              <div class="form-group"><label>Date de départ</label><input type="date" id="search-depart" /></div>
+              <div class="form-group"><label>Personnes</label><input type="number" id="search-capacite" min="1" value="1" /></div>
+              <div class="form-group" style="justify-content:flex-end;padding-top:20px">
+                <button class="btn btn-accent" onclick="searchAvailable()">Rechercher</button>
+              </div>
+            </div>
+          </div>
+          <div class="rooms-grid" id="rooms-grid">
+            <p class="text-muted">Chargement des chambres…</p>
+          </div>
+        </div>
+
+        <!-- ── RÉSERVATIONS ── -->
+        <div class="page" id="page-reservations">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📅 Réservations</span>
+              <select id="filter-statut" onchange="loadReservations()" style="padding:6px 10px;border-radius:6px;border:1.5px solid var(--border)">
+                <option value="">Tous les statuts</option>
+                <option value="confirmee">Confirmée</option>
+                <option value="en_cours">En cours</option>
+                <option value="terminee">Terminée</option>
+                <option value="cloturee">Clôturée</option>
+                <option value="annulee">Annulée</option>
+              </select>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>N°</th><th>Client</th><th>Chambre</th><th>Arrivée</th><th>Départ</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="reservations-tbody"><tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">Chargement…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── CLIENTS (Admin) ── -->
+        <div class="page" id="page-clients">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">👥 Gestion des clients</span>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Inscrit le</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="clients-tbody"><tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px">Chargement…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SERVICES (Admin) ── -->
+        <div class="page" id="page-services-admin">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🍽️ Gestion des services</span>
+              <button class="btn btn-primary btn-sm" onclick="openModal('modal-service')">+ Nouveau service</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Nom</th><th>Catégorie</th><th>Prix (BIF)</th><th>Disponible</th><th>Actions</th></tr></thead>
+                <tbody id="services-admin-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SERVICES (Client) ── -->
+        <div class="page" id="page-services-client">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">🍽️ Services disponibles</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Nom</th><th>Catégorie</th><th>Prix</th><th>Description</th></tr></thead>
+                <tbody id="services-client-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── FACTURES (Admin) ── -->
+        <div class="page" id="page-factures">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🧾 Toutes les factures</span>
+              <div id="revenue-total" class="fw-bold" style="color:var(--success)"></div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Numéro</th><th>Client</th><th>Sous-total</th><th>TVA</th><th>Total</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="factures-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MES FACTURES (Client) ── -->
+        <div class="page" id="page-mes-factures">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">🧾 Mes factures</div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Numéro</th><th>Date</th><th>Total (BIF)</th><th>Statut</th></tr></thead>
+                <tbody id="mes-factures-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════ NOTIFICATION PANEL ═══════════════════════ -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    🔔 Notifications
+    <button class="btn btn-sm btn-outline" onclick="markAllRead()">Tout lire</button>
+  </div>
+  <div id="notif-list"><p class="text-muted" style="padding:16px">Aucune notification.</p></div>
+</div>
+
+<!-- ═══════════════════════ MODALS ═══════════════════════ -->
+
+<!-- New Room -->
+<div class="modal-overlay" id="modal-chambre">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🛏️ Nouvelle chambre</span>
+      <button class="modal-close" onclick="closeModal('modal-chambre')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Numéro</label><input id="c-numero" placeholder="101" /></div>
+      <div class="form-group"><label>Type</label>
+        <select id="c-type">
+          <option value="simple">Simple</option>
+          <option value="double">Double</option>
+          <option value="suite">Suite</option>
+          <option value="familiale">Familiale</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Prix / nuit (BIF)</label><input id="c-prix" type="number" placeholder="50000" /></div>
+      <div class="form-group"><label>Capacité</label><input id="c-capacite" type="number" min="1" placeholder="2" /></div>
+      <div class="form-group"><label>Étage</label><input id="c-etage" type="number" min="1" placeholder="1" /></div>
+    </div>
+    <div class="form-group mt-3"><label>Équipements (séparés par des virgules)</label><input id="c-equipements" placeholder="wifi, TV, climatisation" /></div>
+    <div class="form-group mt-1"><label>Description</label><textarea id="c-description"></textarea></div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-chambre')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveChambre()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Reservation -->
+<div class="modal-overlay" id="modal-reservation">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📅 Nouvelle réservation</span>
+      <button class="modal-close" onclick="closeModal('modal-reservation')">✕</button>
+    </div>
+    <p id="modal-res-room" class="text-muted" style="margin-bottom:14px"></p>
+    <input type="hidden" id="res-chambre-id" />
+    <div class="form-grid">
+      <div class="form-group"><label>Date d'arrivée</label><input type="date" id="res-arrivee" /></div>
+      <div class="form-group"><label>Date de départ</label><input type="date" id="res-depart" /></div>
+      <div class="form-group"><label>Nombre de personnes</label><input type="number" id="res-personnes" min="1" value="1" /></div>
+    </div>
+    <div class="form-group mt-1"><label>Notes</label><textarea id="res-notes" placeholder="Demandes spéciales..."></textarea></div>
+    <div id="res-price-preview" style="background:var(--bg);padding:12px;border-radius:8px;margin-top:14px;display:none">
+      <strong>Estimation :</strong> <span id="res-price-total"></span> BIF
+    </div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-reservation')">Annuler</button>
+      <button class="btn btn-accent" onclick="saveReservation()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Service -->
+<div class="modal-overlay" id="modal-service">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🍽️ Nouveau service</span>
+      <button class="modal-close" onclick="closeModal('modal-service')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nom</label><input id="s-nom" placeholder="Petit-déjeuner" /></div>
+      <div class="form-group"><label>Catégorie</label>
+        <select id="s-categorie">
+          <option value="restauration">Restauration</option>
+          <option value="spa">Spa</option>
+          <option value="transport">Transport</option>
+          <option value="blanchisserie">Blanchisserie</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Prix (BIF)</label><input id="s-prix" type="number" /></div>
+    </div>
+    <div class="form-group mt-1"><label>Description</label><textarea id="s-description"></textarea></div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-service')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveService()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Service to Reservation -->
+<div class="modal-overlay" id="modal-add-service">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">➕ Ajouter un service</span>
+      <button class="modal-close" onclick="closeModal('modal-add-service')">✕</button>
+    </div>
+    <input type="hidden" id="add-service-res-id" />
+    <div class="form-group"><label>Service</label>
+      <select id="add-service-id"></select>
+    </div>
+    <div class="form-group mt-1"><label>Quantité</label><input type="number" id="add-service-qty" min="1" value="1" /></div>
+    <div class="form-group mt-1"><label>Notes</label><input id="add-service-notes" placeholder="Remarque..." /></div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-service')">Annuler</button>
+      <button class="btn btn-success" onclick="addServiceToReservation()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation -->
+<div class="modal-overlay" id="modal-eval">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⭐ Évaluer votre séjour</span>
+      <button class="modal-close" onclick="closeModal('modal-eval')">✕</button>
+    </div>
+    <input type="hidden" id="eval-res-id" />
+    <div class="form-group">
+      <label>Note (1 à 5 étoiles)</label>
+      <select id="eval-note">
+        <option value="5">⭐⭐⭐⭐⭐ — Excellent</option>
+        <option value="4">⭐⭐⭐⭐ — Très bien</option>
+        <option value="3">⭐⭐⭐ — Bien</option>
+        <option value="2">⭐⭐ — Passable</option>
+        <option value="1">⭐ — Mauvais</option>
+      </select>
+    </div>
+    <div class="form-group mt-1"><label>Commentaire</label><textarea id="eval-comment" placeholder="Partagez votre expérience…"></textarea></div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-eval')">Annuler</button>
+      <button class="btn btn-accent" onclick="submitEval()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pay Invoice -->
+<div class="modal-overlay" id="modal-paiement">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">💳 Payer la facture</span>
+      <button class="modal-close" onclick="closeModal('modal-paiement')">✕</button>
+    </div>
+    <input type="hidden" id="pay-facture-id" />
+    <p id="pay-facture-info" class="text-muted" style="margin-bottom:14px"></p>
+    <div class="form-group"><label>Méthode de paiement</label>
+      <select id="pay-methode" onchange="togglePayCard()">
+        <option value="carte">Carte bancaire (passerelle SOAP)</option>
+        <option value="especes">Espèces</option>
+        <option value="virement">Virement</option>
+      </select>
+    </div>
+    <div class="form-group mt-1" id="pay-card-group">
+      <label>Token de carte (simulé)</label>
+      <input id="pay-card-token" value="tok_visa_4242" />
+      <span class="text-muted" style="font-size:.75rem">Toute valeur = paiement accepté · <strong>DECLINED</strong> = carte refusée</span>
+    </div>
+    <div class="flex gap-2 mt-3" style="justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('modal-paiement')">Annuler</button>
+      <button class="btn btn-success" id="pay-submit" onclick="submitPaiement()">Payer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
